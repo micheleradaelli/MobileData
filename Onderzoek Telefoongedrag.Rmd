@@ -1,0 +1,115 @@
+---
+title: "Onderzoek Telefoongedrag"
+author: "Michele Radaelli"
+date: "26 februari 2016"
+output: html_document
+---
+# Onderzoek Telefoongedrag
+
+### Inleiding
+In dit onderzoek zal ik kijken naar het telefoongedrag van mijn vrouw en 3 aanbevelingen doen op basis van inzichten en conclusies die ik uit het onderzoek verkrijg.
+
+### Data inlezen, opschonen en opknippen
+```{r warning=F,message=F}
+library(xlsx)
+# complete_data <- read.xlsx("./TelefoonGegevensFederica.xlsx", 1, header=TRUE, stringsAsFactors = FALSE,
+#                            colClasses = "character")
+complete_data <- read.csv("./TelefoonGegevensFederica.csv", header=TRUE, stringsAsFactors = FALSE,
+                           colClasses = "character")
+head(complete_data)
+```
+
+```{r warning=F,message=F}
+library(lubridate)
+complete_data_split <- split(complete_data, complete_data$field3)
+
+Gesprekken <- complete_data_split$Gesprek[, c(1,2,5,6,8)]
+colnames(Gesprekken) <- c("Datum", "Tijd", "Telnummer", "Gespreksduur", "Prijs")
+
+Gesprekken$Tijd2 <- factor(substr(Gesprekken$Tijd, 1, 2))
+                           #levels = order(unique(substr(Gesprekken$Tijd, 1, 2))))
+Gesprekken$Gespreksduur2 <-  round(as.numeric(Gesprekken$Gespreksduur) * 86400)
+
+Internet <- complete_data_split$Internet[, c(1,2,5,6,8)]
+colnames(Internet) <- c("Datum", "Tijd", "Verbruik", "Eenheid", "Prijs")
+Internet$Tijd <- strftime(Internet$Tijd, format= "%H:%M:%S")
+Internet$Eenheid <- gsub(")", "", Internet$Eenheid)
+Internet$Verbruik <- gsub("\\(", "", Internet$Verbruik)
+Internet$Verbruik <- as.numeric(Internet$Verbruik) / 1024
+
+head(Gesprekken)
+head(Internet)
+```
+
+### Analyse per weekdag (Gesprek vs. Internet)
+```{r warning=F,message=F}
+library(ggplot2)
+Gesprekken$Weekdag <- factor(weekdays(Gesprekken$Datum), ordered = TRUE,
+                             levels = c("Monday", "Tuesday", "Wednesday",
+                                        "Thursday", "Friday", "Saturday", "Sunday"))
+Gesprekken_gem_dag <- aggregate(as.numeric(Gesprekken$Gespreksduur), by=list(Gesprekken$Weekdag), FUN="mean")
+colnames(Gesprekken_gem_dag) <- c("Weekdag", "GemDag")
+
+plot1 <-
+  #ggplot(Gesprekken_gem_dag, aes(x = Gesprekken_gem_dag$Weekdag, y = Gesprekken_gem_dag$GemDag)) +
+  #geom_bar(stat = "identity") + 
+  ggplot(Gesprekken, aes(Weekdag, Gespreksduur)) +  geom_boxplot() + ylim(c(0, 200)) + #geom_jitter(width = 0.5)
+  geom_hline(yintercept = mean(as.numeric(Gesprekken$Gespreksduur)), colour = "red") +
+  ylab("Gemiddelde Gesprekstijd in s") + xlab("") +
+  ggtitle("Gemiddelde Gesprekstijd per Dag") + theme(axis.text.x = element_text(angle = 90))
+
+Internet$Weekdag <- factor(weekdays(Internet$Datum), ordered = TRUE,
+                           levels = c("Monday", "Tuesday", "Wednesday",
+                                      "Thursday", "Friday", "Saturday", "Sunday"))
+Internet_gem_dag <- aggregate(as.numeric(Internet$Verbruik), by=list(Internet$Weekdag), FUN="mean")
+colnames(Internet_gem_dag) <- c("Weekdag", "GemDag")
+plot2 <- ggplot(Internet_gem_dag, aes(x = Internet_gem_dag$Weekdag, y = Internet_gem_dag$GemDag)) + geom_bar(stat = "identity") + ylab("Gemiddeld Verbruik in MB") + xlab("") + ggtitle("Gemiddeld Verbruik per Dag") + theme(axis.text.x = element_text(angle = 90))  +  geom_hline(yintercept = mean(as.numeric(Internet$Verbruik)))
+
+library(Rmisc)
+multiplot(plot1, plot2, cols=2)
+# correggere posizione e ordine nomi dei giorni, aggiungere colore e statistica aggiuntiva?
+```
+
+### Analyse per maand (Gesprek vs. Internet)
+```{r warning=F,message=F}
+Gesprekken$Maand <- as.factor(month(Gesprekken$Datum))
+Gesprekken_maand <- aggregate(as.numeric(Gesprekken$Gespreksduur), by=list(Gesprekken$Maand), FUN="sum")
+colnames(Gesprekken_maand) <- c("Maand", "GesprMaand")
+plot3 <- ggplot(Gesprekken_maand, aes(x = Gesprekken_maand$Maand, y = Gesprekken_maand$GesprMaand)) + geom_bar(stat = "identity") + ylab("Gesprekstijd in s") + xlab("") + ggtitle("Gesprekstijd per Maand") + theme(axis.text.x = element_text(angle = 90))
+
+Internet$Maand <- factor(month(Internet$Datum))
+Internet_maand <- aggregate(as.numeric(Internet$Verbruik), by=list(Internet$Maand), FUN="sum")
+colnames(Internet_maand) <- c("Maand", "VerbrMaand")
+Internet_maand$bundle <- c(500, rep(200, 5), rep(500, 2))
+
+plot4 <- ggplot(Internet_maand, aes(x = Maand, y = VerbrMaand)) +
+  geom_bar(stat = "identity") + ylab("Verbruik in MB") +
+  geom_errorbar(aes(y = bundle, ymin = bundle, ymax = bundle), colour = "red") +
+  xlab("") + ggtitle("Verbruik per Maand") + theme(axis.text.x = element_text(angle = 90))
+
+multiplot(plot3, plot4, cols=2)
+# correggere posizione e ordine (da maggio a febbraio) dei mesi (aggiungere nome del mese?), statistica? Colori? Aggiungere per i mesi 5-9 una barra alta 200mb e da 10-2 500 mb (abbonamento cambiato) (primo abb era 100 minuti + 200 mb, secondo 100 min + 500 mb. altre possibilita: https://www.simyo.nl/sim-only/bestellen )
+# prezzo pagato in piu?
+
+```
+
+### Analyse per uur/dagdeel (Gesprek vs. Internet)
+```{r}
+#Fare un analisi del momento del giorno in cui vengono usati piu dati e fatti piu secondi di chiamata
+
+```
+
+### Analyse voorspelling komende maanden (Gesprek vs. Internet)
+```{r}
+#Fate un analisi per prevedere i prossimi mesi quanto sar?? il consumo di dati/minuti e paragonarlo all'abbonamento attuale per vedere se andr?? ancora bene
+library(forecast)
+ts() #time series object
+
+
+model_arima <- arima() #arima modelling
+model_ets <- ets() #ets modelling
+
+#http://robjhyndman.com/talks/MelbourneRUG.pdf
+
+forecast(model_arima, 120) #forecasting ahead
+```
