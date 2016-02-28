@@ -113,3 +113,6 @@ model_ets <- ets() #ets modelling
 
 forecast(model_arima, 120) #forecasting ahead
 ```
+
+### Analyse per telefoonnummer (verdeling over de totale gesprekstijd)
+
