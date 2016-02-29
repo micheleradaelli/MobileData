@@ -166,5 +166,9 @@ plot7 <-
 plot7
 ```
 
+<<<<<<< HEAD
 
+=======
+### Analyse per telefoonnummer (verdeling over de totale gesprekstijd)
+>>>>>>> origin/master
 
