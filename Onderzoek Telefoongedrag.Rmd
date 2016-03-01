@@ -10,15 +10,19 @@ output: html_document
 In dit onderzoek zal ik kijken naar het telefoongedrag van mijn vrouw en 3 aanbevelingen doen op basis van inzichten en conclusies die ik uit het onderzoek verkrijg.
 
 ### Data inlezen, opschonen en opknippen
+De eerste stap is om data in te lezen. Zo ziet de data er dan uit:
 ```{r warning=F,message=F}
-library(xlsx)
-# complete_data <- read.xlsx("./TelefoonGegevensFederica.xlsx", 1, header=TRUE, stringsAsFactors = FALSE,
-#                            colClasses = "character")
 complete_data <- read.csv("./TelefoonGegevensFederica.csv", header=TRUE, stringsAsFactors = FALSE,
                            colClasses = "character")
 head(complete_data)
 ```
 
+Vervolgens verschoon ik de data:
+- Ik verander de codering van de variabele zodat deze kunnen worden gebruikt in de analyse
+- De kolommen die niet interessant zijn voor de analyse parkeer ik
+- Ik verdeel de data in 2 frames op basis van een kenmerk uit field3 in Gesprek data en Internet data.
+
+Zo ziet de schone en gefilterde data eruit:
 ```{r warning=F,message=F}
 library(lubridate)
 complete_data_split <- split(complete_data, complete_data$field3)
@@ -45,6 +49,7 @@ head(Internet)
 ```
 
 ### Analyse per weekdag (Gesprek vs. Internet)
+In deze eerste analyse aggregeer ik de data per weekdag (ma, di, wo, enz). Ik kijk dan naar het gemiddelde telefoon gedrag per weekdag. De extreme uitschieters worden niet getoond ten behoeve van de zichtbaarheid van de data in de grafieken. Daarnaast zien we het gemiddelde gebruik per dag in het rood aangegeven.
 ```{r warning=F,message=F}
 library(ggplot2)
 Gesprekken$Weekdag <- factor(weekdays(as.Date(Gesprekken$Datum)), ordered = TRUE,
@@ -75,7 +80,10 @@ library(Rmisc)
 multiplot(plot1, plot2, cols=2)
 ```
 
+Uit deze analyse blijkt dat ...
+
 ### Analyse per maand (Gesprek vs. Internet)
+In deze analyse kijke we naar het verloop van het telefoon gebruik over de maanden heen. We kijken hier naar de som van het gebruik per maand. Daarnaast plotten we de hoogte van de bundel zoals deze betaald is in de loop van de maanden. 
 ```{r warning=F,message=F}
 Gesprekken$Maand <- factor(month(as.Date(Gesprekken$Datum)), ordered = TRUE,
                            levels = c(6, 7, 8, 9, 10, 11, 12, 1))
@@ -101,14 +109,13 @@ plot4 <-
   ggtitle("Verbruik per Maand")
 
 multiplot(plot3, plot4, cols=2)
-# correggere posizione e ordine (da maggio a febbraio) dei mesi (aggiungere nome del mese?), statistica? Colori? Aggiungere per i mesi 5-9 una barra alta 200mb e da 10-2 500 mb (abbonamento cambiato) (primo abb era 100 minuti + 200 mb, secondo 100 min + 500 mb. altre possibilita: https://www.simyo.nl/sim-only/bestellen )
-# prezzo pagato in piu?
-
 ```
 
-### Analyse per uur/dagdeel (Gesprek vs. Internet)
+We zien dat ...
+
+### Analyse per uur (Gesprek vs. Internet)
+Ik aggregeer nu de verbruiksdata per uur. Ik kijk over alle dagen heen wat het gemiddelde verbruik ieder uur is geweest. Ter vergelijking laat ik zien wat het gemiddelde verbruik is over alle uren heen.
 ```{r warning=F,message=F}
-#Fare un analisi del momento del giorno in cui vengono usati piu dati e fatti piu secondi di chiamata
 Gesprekken_gem_uur <- aggregate(as.numeric(Gesprekken$Gespreksduur), by=list(Gesprekken$Uur), FUN="mean")
 colnames(Gesprekken_gem_uur) <- c("Tijd", "GemUur")
 
@@ -129,15 +136,14 @@ plot6 <-
   ggtitle("Gemiddeld Verbruik per Uur")
 
 multiplot(plot5, plot6, cols=2)
-
-#aggiungere due colori per i mesi 200 mb en 500 mb
 ```
 
+We zien dat...
+
 ### Analyse voorspelling komende maanden (Gesprek vs. Internet)
+Nu gebruik ik de berbruiksdata om iets te vertellen over hoe deze zich in de toekomst zal ontwikkelen. Ik creeer een tijdreeks over de dagen heen en doe een forecast met verschillende modellen.
 ```{r warning=F,message=F}
-#Fate un analisi per prevedere i prossimi mesi quanto sar?? il consumo di dati/minuti e paragonarlo all'abbonamento attuale per vedere se andr?? ancora bene
-#library(forecast)
-#ts() #time series object
+
 Internet_per_dag <- aggregate(Internet$Verbruik, by = list(as.Date(Internet$Datum, format = "%d/%m/%y")), FUN = "sum")
 
 Time_series <- ts(Internet_per_dag$x)
@@ -153,7 +159,10 @@ plot(Time_series)
 #forecast(model_arima, 120) #forecasting ahead
 ```
 
+we zien dat...
+
 ### Analyse meest gebelde nummers
+De laatste analyse is om te kijken of er telefoonnummers zijn die meer of minder vaak gebeld worden. Ik kijk in deze analyse naar de som van beltijd per nummer. Het hele telefoonnummer is niet beschikbaar, we nemen dus alleen het zichbaar deel van het telefoonnummer.
 ```{r warning=F,message=F}
 Tijd_per_nummer <- aggregate(Gesprekken$Gespreksduur, by = list(substr(Gesprekken$Telnummer, 1,5), month(Gesprekken$Datum)), 'sum')
 colnames(Tijd_per_nummer) <- c("Nummer", "Maand", "SomTijd")
@@ -165,10 +174,4 @@ plot7 <-
   ggtitle("Beltijd per Nummer")
 plot7
 ```
-
-<<<<<<< HEAD
-
-=======
-### Analyse per telefoonnummer (verdeling over de totale gesprekstijd)
->>>>>>> origin/master
 
