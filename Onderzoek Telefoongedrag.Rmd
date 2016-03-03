@@ -2,8 +2,7 @@
 title: "Onderzoek Telefoongedrag"
 author: "Michele Radaelli"
 date: "26 februari 2016"
-output: html_document:
-                fig_width:6
+output: html_document
 ---
 # Onderzoek Telefoongedrag
 
@@ -108,7 +107,7 @@ colnames(Gesprekken_maand) <- c("Maand", "GesprMaand")
 plot3 <- 
   ggplot(Gesprekken_maand, aes(x = Maand, y = GesprMaand)) + 
   geom_bar(stat = "identity") + ylab("Gesprekstijd in s") + xlab("") + 
-  stat_smooth(method="lm",se=FALSE) +
+  stat_smooth(method="lm", aes(x = 1:11), se=FALSE) +
   ggtitle("Gesprekstijd per Maand") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
@@ -162,12 +161,22 @@ Gesprekken_gem_uur <- aggregate(as.numeric(Gesprekken$Gespreksduur), by=list(Ges
 colnames(Gesprekken_gem_uur) <- c("Tijd", "GemUur")
 
 plot7 <-
-  ggplot(Gesprekken, aes(Uur, Gespreksduur)) + geom_jitter() + ylim(c(0, 300)) +
+  ggplot(Gesprekken, aes(as.numeric(Uur), Gespreksduur)) + geom_jitter() +
   geom_hline(yintercept = mean(as.numeric(Gesprekken$Gespreksduur)), colour = "red") +
+  geom_smooth(se = FALSE) +
+  ylim(c(0, 300)) + xlim(c(0, 23)) +
   ylab("Gemiddelde Gesprekstijd in s") + xlab("") +
   ggtitle("Gemiddelde Gesprekstijd per Uur") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
+# plot7b <-
+#   ggplot(Gesprekken, aes(Uur, Gespreksduur)) + geom_jitter() +
+#   geom_hline(yintercept = mean(as.numeric(Gesprekken$Gespreksduur)), colour = "red") +
+#   ylim(c(0, 300)) +
+#   ylab("Gemiddelde Gesprekstijd in s") + xlab("") +
+#   ggtitle("Gemiddelde Gesprekstijd per Uur") +
+#   theme(axis.text.x = element_text(angle = 90, hjust = 1))
+# multiplot(plot7, plot7b, cols=2)
 
 Internet_gem_uur <- aggregate(as.numeric(Internet$Verbruik), by=list(Internet$Uur), FUN="mean")
 colnames(Internet_gem_uur) <- c("Tijd", "GemUur")
@@ -190,11 +199,13 @@ Nu gebruik ik de berbruiksdata om iets te vertellen over hoe deze zich in de toe
 library(forecast)
 Time_series <- ts(Prijs_per_maand$Kosten)
 
-model_arima <- arima(Time_series) 
+#model_arima <- arima(Time_series) 
+model_autoarima <- auto.arima(Time_series)
 model_ets <- ets(Time_series) 
 
-plot(forecast(model_arima, 4)) 
-plot(forecast(model_ets, 4)) 
+#plot(forecast(model_arima, 4))
+plot(forecast(model_autoarima, 4))
+plot(forecast(model_ets, 4))
 ```
 
 we zien dat...
