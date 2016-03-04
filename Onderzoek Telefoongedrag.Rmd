@@ -1,14 +1,13 @@
 ---
 title: "Onderzoek Telefoongedrag"
 author: "Michele Radaelli"
-date: "26 februari 2016"
-output: html_document:
-                fig_width:6
+date: "6 Maart 2016"
+output: html_document
 ---
-# Onderzoek Telefoongedrag
+# Onderzoek naar Telefoongedrag
 
 ### Inleiding
-In dit onderzoek zal ik kijken naar het telefoongedrag van mijn vrouw en 3 aanbevelingen doen op basis van inzichten en conclusies die ik uit het onderzoek verkrijg.
+In dit onderzoek zal ik kijken naar mijn telefoongedrag gebaseerd op data van maart 2015 t/m jaunari 2016. Ik wil door dit onderzoek inzicht verkrijgen in mijn gedrag en mijzelf 3 aanbevelingen doen op basis van inzichten en conclusies die ik uit het onderzoek verkrijg.
 
 ### Data inlezen, opschonen en opknippen
 De eerste stap is om data in te lezen. Zo ziet de data er dan uit:
@@ -18,9 +17,11 @@ complete_data <- read.csv("./TelefoonGegevensMichele.csv", header=TRUE, stringsA
 head(complete_data)
 ```
 
-Vervolgens verschoon ik de data:
-- Ik verander de codering van de variabele zodat deze kunnen worden gebruikt in de analyse
-- De kolommen die niet interessant zijn voor de analyse parkeer ik
+Vervolgens verschoon, filter en verrijk ik de data:
+- Ik cleans de data zodat verkeerde/onnodige symbolen goed komen te staan.
+- Ik verander de codering van de variabele zodat deze kunnen worden gebruikt in de analyse.
+- De kolommen die niet interessant zijn voor de analyse parkeer ik.
+- Ik cree??r nieuwe variabele die handig zijn voor het onderzoek (Maand, Weekdag, etc)
 - Ik verdeel de data in 2 frames op basis van een kenmerk uit field3 in Gesprek data en Internet data.
 
 Zo ziet de schone en gefilterde data eruit:
@@ -70,172 +71,204 @@ head(Internet)
 ```
 
 ### Analyse per weekdag (Gesprek vs. Internet)
-In deze eerste analyse aggregeer ik de data per weekdag (ma, di, wo, enz). Ik kijk dan naar het gemiddelde telefoon gedrag per weekdag. De extreme uitschieters worden niet getoond ten behoeve van de zichtbaarheid van de data in de grafieken. Daarnaast zien we het gemiddelde gebruik per dag in het rood aangegeven.
+In deze eerste analyse aggregeer ik de data per weekdag (ma, di, wo, enz). Ik kijk dan naar het telefoon gedrag (Gesprek vs. Internet) per weekdag. De extreme uitschieters worden niet getoond ten behoeve van de zichtbaarheid van de data in de grafieken maar worden wel in de middenmaten meegenomen. In het rood is het gemiddelde genomen over alle gesprek/internet momenten. Iedere dag is een boxplot te zien met de 25%, 50% en 75% waarden.
 ```{r warning=F,message=F}
 library(ggplot2)
 Gesprekken_gem_dag <- aggregate(as.numeric(Gesprekken$Gespreksduur), by=list(Gesprekken$Weekdag), FUN="mean")
 colnames(Gesprekken_gem_dag) <- c("Weekdag", "GemDag")
 
 plot1 <-
-  ggplot(Gesprekken, aes(Weekdag, Gespreksduur)) +  geom_boxplot() + ylim(c(0, 300)) +
+  ggplot(Gesprekken, aes(Weekdag, Gespreksduur)) +  geom_boxplot(colour = I("#3366FF")) + ylim(c(0, 300)) +
   geom_hline(yintercept = mean(as.numeric(Gesprekken$Gespreksduur)), colour = "red") +
-  ylab("Gemiddelde Gesprekstijd in s") + xlab("") +
-  ggtitle("Gemiddelde Gesprekstijd per Dag") +
+  ylab("Gesprekstijd in s") + xlab("") +
+  ggtitle("Gesprekstijd per Dag") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
 Internet_gem_dag <- aggregate(as.numeric(Internet$Verbruik), by=list(Internet$Weekdag), FUN="mean")
 colnames(Internet_gem_dag) <- c("Weekdag", "GemDag")
 
 plot2 <-
-  ggplot(Internet, aes(Weekdag, Verbruik)) +  geom_boxplot() + ylim(c(0, 5)) +
+  ggplot(Internet, aes(Weekdag, Verbruik)) +  geom_boxplot(colour = I("#3366FF")) + ylim(c(0, 5)) +
   geom_hline(yintercept = mean(as.numeric(Internet$Verbruik)), colour = "red") +
-  ylab("Gemiddeld Verbruik in MB") + xlab("") +
-  ggtitle("Gemiddeld Verbruik per Dag") +
+  ylab("Verbruik in MB") + xlab("") +
+  ggtitle("Verbruik per Dag") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
 library(Rmisc)
 multiplot(plot1, plot2, cols=2)
+
+#aggiungere numero di chiamate e di utilizzi internet come density durante la settimana?
 ```
 
-Uit deze analyse blijkt dat ...
+Uit deze analyse blijkt dat de meeste (iedere dag meer dan 75%) gesprek/interenet momenten ondergemiddeld zijn in tijd/verbruik. Daarnaast is geen duidelijk patroon te zien gedurende de week. 
 
 ### Analyse per maand (Gesprek vs. Internet vs. Kosten)
-In deze analyse kijke we naar het verloop van het telefoon gebruik over de maanden heen. We kijken hier naar de som van het gebruik per maand. Daarnaast plotten we de hoogte van de bundel zoals deze betaald is in de loop van de maanden. 
+In deze analyse kijke we naar het verloop van het telefoon gebruik over de maanden heen. In het blauw zien we een simpele lineaire regressie. Deze geeft een eerste schatting van het verloop in de tijd. 
 ```{r warning=F,message=F}
 Gesprekken_maand <- aggregate(as.numeric(Gesprekken$Gespreksduur), by=list(Gesprekken$Maand), FUN="sum")
 colnames(Gesprekken_maand) <- c("Maand", "GesprMaand")
 
 plot3 <- 
   ggplot(Gesprekken_maand, aes(x = Maand, y = GesprMaand)) + 
-  geom_bar(stat = "identity") + ylab("Gesprekstijd in s") + xlab("") + 
-  stat_smooth(method="lm",se=FALSE) +
+  geom_bar(stat = "identity", fill="white", colour="darkgreen") + ylab("Gesprekstijd in s") + xlab("") + 
+  stat_smooth(method="lm", aes(x = 1:11), se=FALSE) +
   ggtitle("Gesprekstijd per Maand") +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) + scale_fill_brewer()
 
 Internet_maand <- aggregate(as.numeric(Internet$Verbruik), by=list(Internet$Maand), FUN="sum")
 colnames(Internet_maand) <- c("Maand", "VerbrMaand")
 
 plot4 <- 
   ggplot(Internet_maand, aes(x = Maand, y = VerbrMaand)) +
-  geom_bar(stat = "identity") + ylab("Verbruik in MB") +
-  xlab("") + 
+  geom_bar(stat = "identity", fill="white", colour="darkgreen") + ylab("Verbruik in MB") + xlab("") + 
+  stat_smooth(method="lm", aes(x = 1:11), se=FALSE) +
   ggtitle("Internet Verbruik per Maand") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
 multiplot(plot3, plot4, cols=2)
 ```
 
-We zien dat ...
+We zien dat zowel de gesprekstijd als het internetverbruik sterk toeneemt in de tijd. Daarnaast zien we dat de afgelopen maand twee keer zoveel gebeld is als de ????n na hoogste peik. Dit zien we niet terug in het internetverbruik. 
 
+Ik ga nu onderzoeken is wat de relatie tussen gesprekstijd en internetverbruik is door de maanden heen. Daarnaast kijk is hoe het verloop van de kosten is. In de grafiek zien we in het rood de hoogte van de bundel. Die is altijd 7,50 euro geweest en tot nu toe nooit gewijzigd. Hier ook zien we een lineaire regressie benadering van de kosten in de tijd. 
 ```{r}
-Prijs_per_maand <- aggregate(as.numeric(complete_data$Prijs), by = list(complete_data$Maand, complete_data$Type), FUN = "sum")
-names(Prijs_per_maand) <- c("Maand", "Type", "Kosten")
+Prijs_per_maand <- aggregate(as.numeric(complete_data$Prijs), by = list(complete_data$Maand), FUN = "sum")
+names(Prijs_per_maand) <- c("Maand", "Kosten")
+Prijs_per_maand_type <- aggregate(as.numeric(complete_data$Prijs), by = list(complete_data$Maand, complete_data$Type), FUN = "sum")
+names(Prijs_per_maand_type) <- c("Maand", "Type", "Kosten")
 
 Prijs_per_maand$bundle <- c(rep(7.50 , 11))
 
 plot5 <- 
-  ggplot(Prijs_per_maand, aes(x = Maand, y = Kosten, fill=Type)) +
-  geom_bar(stat = "identity") + ylab("Kosten in Euro's") +
+  ggplot(Prijs_per_maand, aes(x = Maand, y = Kosten)) +
+  geom_bar(stat = "identity", fill="white", colour="darkgreen") + ylab("Kosten in Euro's") +
+  stat_smooth(method="lm", aes(x = 1:11), se=FALSE) +
   geom_errorbar(aes(y = bundle, ymin = bundle, ymax = bundle), colour = "red") + 
-  xlab("") + 
-  ggtitle("Kosten per Maand in Euro's") +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-  theme(legend.justification=c(0,1), legend.position=c(0,1))
+  xlab("") + ggtitle("Kosten per Maand in Euro's") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
 
 plot6 <- 
-  ggplot(Prijs_per_maand, aes(x = Maand, y = Kosten, fill=Type)) +
+  ggplot(Prijs_per_maand_type, aes(x = Maand, y = Kosten, fill=Type)) +
   geom_bar(position="fill", stat = "identity") + ylab("Verderling in Procenten") +
-  xlab("") + 
-  ggtitle("Verdeling kosten Internet vs. Gesprekken") +
+  xlab("") + ggtitle("Verdeling kosten Internet vs. Gesprekken") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   scale_y_continuous(labels =scales::percent) +
-  theme(legend.position="none")
+  theme(legend.justification=c(0,1), legend.position=c(0,1)) +
+  scale_fill_brewer()
 
-multiplot(plot5, plot6, cols=2)
 
+multiplot(plot6, plot5, cols=2)
+#lm  in grafico 6 o in grafico 5 due lm, uno per le chiamate uno per internet?
+#spese sopra il bundel per capire se avrei dovuto cambiare?
+#grafico con settimane cumulative al mese e bundel. Per vedere in che settimana si supera?
 ```
 
+Wat meteen opvalt is dat verreweg de meeste kosten worden gedragen door het internetverbruik. Het ziet er wel naar uit dat dit met de tijd licht verandert. 
+In de tweede grafiek zien we dat op ????n maand na (augustus was ik op vakantie in het buitenland) de kosten altijd hoger zijn dan door de bundel gedekt wordt. Ook zien we een neiging van de kosten om te stijgen in de tijd. 
+
 ### Analyse per uur (Gesprek vs. Internet)
-Ik aggregeer nu de verbruiksdata per uur. Ik kijk over alle dagen heen wat het gemiddelde verbruik ieder uur is geweest. Ter vergelijking laat ik zien wat het gemiddelde verbruik is over alle uren heen.
+Ik aggregeer nu de verbruiksdata per uur. Ik kijk over alle dagen heen wat het verbruik ieder uur is geweest. In de grafiek is ook een LOESS regressie te zien. Dit is een gewogen middenmaat waarbij de punten dichter bij deze maat een groter gewicht hebben ten opzichte van de punten die hier verder vanaf liggen. Hoe smaller de smoothing, hoe representatiever de middenmaat is. Deze middenmaat wil alleen een impressie geven over het verloop van het gebruik gedurende de dag.
 ```{r warning=F,message=F}
 Gesprekken_gem_uur <- aggregate(as.numeric(Gesprekken$Gespreksduur), by=list(Gesprekken$Uur), FUN="mean")
 colnames(Gesprekken_gem_uur) <- c("Tijd", "GemUur")
 
 plot7 <-
-  ggplot(Gesprekken, aes(Uur, Gespreksduur)) + geom_jitter() + ylim(c(0, 300)) +
-  geom_hline(yintercept = mean(as.numeric(Gesprekken$Gespreksduur)), colour = "red") +
-  ylab("Gemiddelde Gesprekstijd in s") + xlab("") +
-  ggtitle("Gemiddelde Gesprekstijd per Uur") +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1))
-
-
+  ggplot(Gesprekken, aes(as.numeric(Uur), Gespreksduur)) + geom_jitter(color="red") +
+  geom_smooth() + ylim(c(0, 300)) +
+  ylab("Gesprekstijd in s") + xlab("") +
+  ggtitle("Verloop Gesprekstijd per Uur") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  scale_x_continuous(breaks=seq(1, 24, 1))
+  
 Internet_gem_uur <- aggregate(as.numeric(Internet$Verbruik), by=list(Internet$Uur), FUN="mean")
 colnames(Internet_gem_uur) <- c("Tijd", "GemUur")
 
 plot8 <-
-  ggplot(Internet, aes(Uur, Verbruik)) + geom_jitter() + ylim(c(0, 2)) + 
-  geom_hline(yintercept = mean(as.numeric(Internet$Verbruik)), colour = "red") +
+  ggplot(Internet, aes(as.numeric(Uur), Verbruik)) + geom_jitter(color="red") + 
+  geom_smooth() + ylim(c(0, 2)) + 
   ylab("Gemiddeld Verbruik in MB") + xlab("") +
   ggtitle("Gemiddeld Verbruik per Uur") +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  scale_x_continuous(breaks=seq(1, 24, 1))
 
 multiplot(plot7, plot8, cols=2)
 ```
 
-We zien dat...
-
-### Analyse voorspelling komende maanden (Gesprek vs. Internet)
-Nu gebruik ik de berbruiksdata om iets te vertellen over hoe deze zich in de toekomst zal ontwikkelen. Ik creeer een tijdreeks over de dagen heen en doe een forecast met verschillende modellen.
-```{r warning=F,message=F}
-library(forecast)
-Time_series <- ts(Prijs_per_maand$Kosten)
-
-model_arima <- arima(Time_series) 
-model_ets <- ets(Time_series) 
-
-plot(forecast(model_arima, 4)) 
-plot(forecast(model_ets, 4)) 
-```
-
-we zien dat...
+We zien dat er 's nachts op een paar uitzonderingen na niet gebeld is, terwijl er vaak gebruik is gemaakt van internet. Dit vebruik bevat echter alleen hele lage verbruiks momenten. Dit zou verklaard kunnen worden door notificaties of inkomende berichten die dan worden ontvangen zondar dat de gebruiker actief gebruik maakt van de telefoon. Het internetverbruik blijkt van 8 tot 18 uur continu hoog te zijn. Terwijl deze, maar ook de gesprekstijd, in de avond vlink afneemt. De verklaring voor de dip in verbruik is dat ik 's avonds Wi-Fi gebruik als ik thuis ben. De dip in gesprestijd is te verklaren doordat we kijken naar een telefoon van de zaak, deze wordt dus voornamelijk op kantoor gebruikt.
 
 ### Analyse meest gebelde nummers
-De laatste analyse is om te kijken of er telefoonnummers zijn die meer of minder vaak gebeld worden. Ik kijk in deze analyse naar de som van beltijd per nummer.
+De volgende analyse is om te kijken of er telefoonnummers zijn die meer of minder vaak gebeld worden. Ik kijk in deze analyse naar de som van beltijd en kosten per nummer en naar de verdeling over de maanden heen. Ik kijk alleen naar de 15 meest gebruikte nummers (gebaseerd op beltijd en kosten per nummer)
 ```{r warning=F,message=F}
 library(plyr)
-Tijd_per_nummer <- aggregate(Gesprekken$Gespreksduur, by = list(Gesprekken$Telnummer), 'sum')
+Tijd_per_nummer <- aggregate(Gesprekken$Gespreksduur, by = list(Gesprekken$Telnummer, Gesprekken$Maand), 'sum')
 
-Prijs_per_nummer <- aggregate(as.numeric(Gesprekken$Prijs), by = list(Gesprekken$Telnummer), 'sum')
+Prijs_per_nummer <- aggregate(as.numeric(Gesprekken$Prijs), by = list(Gesprekken$Telnummer, Gesprekken$Maand), 'sum')
 
-colnames(Tijd_per_nummer) <- c("Nummer", "SomTijd")
-colnames(Prijs_per_nummer) <- c("Nummer", "SomPrijs")
+colnames(Tijd_per_nummer) <- c("Nummer", "Maand", "SomTijd")
+colnames(Prijs_per_nummer) <- c("Nummer", "Maand", "SomPrijs")
 
 Tijd_per_nummer_top <- arrange(Tijd_per_nummer, desc(SomTijd))[1:15,]
 Prijs_per_nummer_top <- arrange(Prijs_per_nummer, desc(SomPrijs))[1:15,]
 
 
 plot9 <- 
-  ggplot(Tijd_per_nummer_top, aes(x = Nummer, y = SomTijd)) + 
+  ggplot(Tijd_per_nummer_top, aes(x = Nummer, y = SomTijd, fill= Maand)) + 
   geom_bar(stat = "identity") + ylab("Beltijd in s") + xlab("") + 
-  geom_hline(yintercept = mean(as.numeric(Tijd_per_nummer$SomTijd)), colour = "red") +
   ggtitle("Beltijd per Nummer") +
-  theme(axis.text.x = element_text(angle = 90))
+  theme(axis.text.x = element_text(angle = 90)) +
+  theme(legend.position='none') +
+  scale_fill_brewer()
 
 plot10 <- 
-  ggplot(Prijs_per_nummer_top, aes(x = Nummer, y = SomPrijs)) + 
-  geom_bar(stat = "identity") + ylab("Prijs in Euro's") + xlab("") + 
-  geom_hline(yintercept = mean(as.numeric(Prijs_per_nummer$SomPrijs)), colour = "red") +
+  ggplot(Prijs_per_nummer_top, aes(x = Nummer, y = SomPrijs, fill= Maand)) + 
+  geom_bar(stat = "identity") + ylab("Kosten in Euro's") + xlab("") + 
   ggtitle("Kosten per Nummer") +
-  theme(axis.text.x = element_text(angle = 90))
+  theme(axis.text.x = element_text(angle = 90)) +
+  theme(legend.justification=c(1,1), legend.position=c(1,1)) +
+  scale_fill_brewer()
 
-multiplot(plot9, plot10, cols=2)
 
-#forecast
-#regression smoothing in day view
-#regression line in month view
-#use over weeks
-#add weeks in the month view?
-#pie chart for price per number?
-#allargare finestre immagini
+multiplot(plot10, plot9, cols=2)
+
+#correggere numeri di telefono
 ```
 
+De kosten zijn in absolute zin verreweg het hoogst geweest voor nummmer xxx, daarna volgt direct nummer xxx. Als we echter kijken naar de maanden waarop deze kosten gemaakt zijn zien we voor nummer xxx de kosten in mei en july zijn geweest terwijl voor nummer xxx deze veel recenter zijn. Als we dan kijken naar de beltijd per nummer zien we dat xxx verreweg het meeste gebelde nummer is. De kosten die dus zijn gemaakt voor nummer xxx, die overigens niet voorkomt de tweede grafiek, kunnen verklaard worden door het feit dat dit een buitenalds nummer is, meer kosten voor minder beltijd. 
+
+### Analyse voorspelling komende maanden (Gesprek vs. Internet)
+Ik ga nu de kosten analyseren in de afelopen maanden om een schatting te kunnen doen van de kosten in de komende weken. Ik cree??r een tijdsreeks met de data. Ik vergelijk 2 forecast modellen. De laatste 7 observaties vormen mijn test set. De fout van de forecast tenopzichte van de test set is hier te zien:
+```{r warning=F,message=F}
+library(forecast)
+Prijs_per_dag <- aggregate(as.numeric(complete_data$Prijs), by = list(complete_data$Datum), FUN = "sum")
+names(Prijs_per_dag) <- c("Dag", "Kosten")
+Time_series <- ts(Prijs_per_dag$Kosten)
+length_ts <- length(Time_series)
+
+Time_series_train1 <- Time_series[1:(length_ts-7)]
+Time_series_test1 <- Time_series[(length_ts-6):length_ts]
+model_autoarima1 <- auto.arima(Time_series_train1)
+model_ets1 <- ets(Time_series_train1) 
+forecast_autoarima1 <- forecast(model_autoarima1, 7)
+forecast_ets1 <- forecast(model_ets1, 7)
+error_autoarima1 <- sqrt(sum((forecast_autoarima1$mean-Time_series_test1)*(forecast_autoarima1$mean-Time_series_test1)))
+error_ets1 <- sqrt(sum((forecast_ets1$mean-Time_series_test1)*(forecast_ets1$mean-Time_series_test1)))
+
+error_autoarima1
+error_ets1
+```
+
+We zien dat de fout bijna hetzelfde is voor de twee modellen maar net iets kleiner voor de auto_arima model. We kiezen dit model dus om de kosten te voorptellen voor de komdende week. Dit is het resultaat:
+```{r}
+model_autoarima <- auto.arima(Time_series)
+forecast_autoarima <- forecast(model_autoarima, 7)
+plot(forecast_autoarima$mean, xlim=c(250, 285), ylim=c(0,3))
+#pd <- funggcast(Time_series, forecast_autoarima)
+#p <- ggplot(forecast_autoarima, aes(mean)) + geom_line()
+# come si puo migliorare fare un ts dei giorni invece che dei mesi per avere piu osservazioni?
+```
+
+0,50 cent per dag, dus 3,50 euro's in de komende week.
+###3 aanbevelingen
+1) aaa
+2) bbb
+3) ccc
