@@ -1,7 +1,11 @@
 ---
 title: "Onderzoek Telefoongedrag"
 author: "Michele Radaelli"
+<<<<<<< HEAD
 date: "6 Maart 2016"
+=======
+date: "26 februari 2016"
+>>>>>>> origin/master
 output: html_document
 ---
 # Onderzoek naar Telefoongedrag
@@ -110,7 +114,11 @@ colnames(Gesprekken_maand) <- c("Maand", "GesprMaand")
 
 plot3 <- 
   ggplot(Gesprekken_maand, aes(x = Maand, y = GesprMaand)) + 
+<<<<<<< HEAD
   geom_bar(stat = "identity", fill="white", colour="darkgreen") + ylab("Gesprekstijd in s") + xlab("") + 
+=======
+  geom_bar(stat = "identity") + ylab("Gesprekstijd in s") + xlab("") + 
+>>>>>>> origin/master
   stat_smooth(method="lm", aes(x = 1:11), se=FALSE) +
   ggtitle("Gesprekstijd per Maand") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) + scale_fill_brewer()
@@ -173,6 +181,7 @@ Gesprekken_gem_uur <- aggregate(as.numeric(Gesprekken$Gespreksduur), by=list(Ges
 colnames(Gesprekken_gem_uur) <- c("Tijd", "GemUur")
 
 plot7 <-
+<<<<<<< HEAD
   ggplot(Gesprekken, aes(as.numeric(Uur), Gespreksduur)) + geom_jitter(color="red") +
   geom_smooth() + ylim(c(0, 300)) +
   ylab("Gesprekstijd in s") + xlab("") +
@@ -180,6 +189,25 @@ plot7 <-
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   scale_x_continuous(breaks=seq(1, 24, 1))
   
+=======
+  ggplot(Gesprekken, aes(as.numeric(Uur), Gespreksduur)) + geom_jitter() +
+  geom_hline(yintercept = mean(as.numeric(Gesprekken$Gespreksduur)), colour = "red") +
+  geom_smooth(se = FALSE) +
+  ylim(c(0, 300)) + xlim(c(0, 23)) +
+  ylab("Gemiddelde Gesprekstijd in s") + xlab("") +
+  ggtitle("Gemiddelde Gesprekstijd per Uur") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+# plot7b <-
+#   ggplot(Gesprekken, aes(Uur, Gespreksduur)) + geom_jitter() +
+#   geom_hline(yintercept = mean(as.numeric(Gesprekken$Gespreksduur)), colour = "red") +
+#   ylim(c(0, 300)) +
+#   ylab("Gemiddelde Gesprekstijd in s") + xlab("") +
+#   ggtitle("Gemiddelde Gesprekstijd per Uur") +
+#   theme(axis.text.x = element_text(angle = 90, hjust = 1))
+# multiplot(plot7, plot7b, cols=2)
+
+>>>>>>> origin/master
 Internet_gem_uur <- aggregate(as.numeric(Internet$Verbruik), by=list(Internet$Uur), FUN="mean")
 colnames(Internet_gem_uur) <- c("Tijd", "GemUur")
 
@@ -194,7 +222,28 @@ plot8 <-
 multiplot(plot7, plot8, cols=2)
 ```
 
+<<<<<<< HEAD
 We zien dat er 's nachts op een paar uitzonderingen na niet gebeld is, terwijl er vaak gebruik is gemaakt van internet. Dit vebruik bevat echter alleen hele lage verbruiks momenten. Dit zou verklaard kunnen worden door notificaties of inkomende berichten die dan worden ontvangen zondar dat de gebruiker actief gebruik maakt van de telefoon. Het internetverbruik blijkt van 8 tot 18 uur continu hoog te zijn. Terwijl deze, maar ook de gesprekstijd, in de avond vlink afneemt. De verklaring voor de dip in verbruik is dat ik 's avonds Wi-Fi gebruik als ik thuis ben. De dip in gesprestijd is te verklaren doordat we kijken naar een telefoon van de zaak, deze wordt dus voornamelijk op kantoor gebruikt.
+=======
+We zien dat...
+
+### Analyse voorspelling komende maanden (Gesprek vs. Internet)
+Nu gebruik ik de berbruiksdata om iets te vertellen over hoe deze zich in de toekomst zal ontwikkelen. Ik creeer een tijdreeks over de dagen heen en doe een forecast met verschillende modellen.
+```{r warning=F,message=F}
+library(forecast)
+Time_series <- ts(Prijs_per_maand$Kosten)
+
+#model_arima <- arima(Time_series) 
+model_autoarima <- auto.arima(Time_series)
+model_ets <- ets(Time_series) 
+
+#plot(forecast(model_arima, 4))
+plot(forecast(model_autoarima, 4))
+plot(forecast(model_ets, 4))
+```
+
+we zien dat...
+>>>>>>> origin/master
 
 ### Analyse meest gebelde nummers
 De volgende analyse is om te kijken of er telefoonnummers zijn die meer of minder vaak gebeld worden. Ik kijk in deze analyse naar de som van beltijd en kosten per nummer en naar de verdeling over de maanden heen. Ik kijk alleen naar de 15 meest gebruikte nummers (gebaseerd op beltijd en kosten per nummer)
